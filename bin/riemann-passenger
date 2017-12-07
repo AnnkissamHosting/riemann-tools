@@ -16,36 +16,84 @@ class Riemann::Tools::PassengerStatus
   end
   
   def passenger_pool_metrics
-    app_hash = {}
-    passenger_output = passenger_output.split("\n")
-    passenger_output.each_with_index do |line, index|
+    index_hash = {}
+    output_array = passenger_output.split("\n")
+    output_array.each_with_index do |line, index|
       if line[/Max pool size/]
         alert "Passenger Max_pool_size", "ok",  line[/\d.*$/], ""
       elsif line[/Processes/]
         alert "Passenger Current_process_number", "ok", line[/\d.*$/], ""
+      elsif line[/top-level/]
+        alert "Passenger Current_top_level_queue_requests", "ok", line[/\d.*$/], ""
       elsif line[/App root/]
         application = line[/\/.*$/].split("/")[-2].gsub!(".","_")
-        app_hash[application] = index
+        index_hash[application] = index
       else
         next
       end
     end
-
-    unless app_hash.empty?
-      mem_hash = {}
-      app_hash.each do |application, index|
-        
-      passenger_app_load(mem_hash)
-    end
+      
+    mem_hash, process_hash = passenger_app_memory(index_hash, output_array)
+    passenger_app_load mem_hash
+    passenger_app_requests(index_hash, output_array)
+    passenger_app_processing process_hash
   end
   
-  def passenger_app_load(app_hash)
-    app_hash.each do |app, index|
+  def passenger_app_memory(index_hash, output_array)
+    return nil if index_hash.empty?
+
+    mem_hash = {}
+    process_hash = {}
+
+    index_hash.each do |application, index|
+      mem_hash[application] = []
+      process_hash[application] = []
+      index += 2
+      until output_array[index][/Memory/].nil? && output_array[index][/Processed/].nil?
+        if !output_array[index][/Memory/].nil?
+          memory = output_array[index].split(" ")[4]
+          mem_hash[application] << memory
+        elsif !output_array[index][/Processed/].nil?
+          processed = output_array[index].split(" ")[6]
+          process_hash[application] << processed
+        end
+        index += 1
+        if index >= output_array.length
+          break
+        end
+      end
+    end
+    
+    return mem_hash, process_hash
+  end
+  
+  def passenger_app_requests(index_hash, output_array)
+    return nil if index_hash.empty?
+    index_hash.each do |app, index|
+      group_requests = output_array[index+1][/\d.*$/]
+      alert "Passenger #{app} application_queue_requests", "ok", group_requests, ""
+    end
+  end
+
+  def passenger_app_load(mem_hash)
+    return nil if mem_hash.empty?
+    mem_hash.each do |app, mem_array|
       instances = mem_array.length
       alert "Passenger #{app} total_instances", "ok", instances, ""
       i = 0
       mem_array.each do |memory|
         alert "Passenger #{app} instance_#{i}_memory", "ok", memory, ""
+        i += 1
+      end
+    end
+  end
+  
+  def passenger_app_processing(process_hash)
+    return nil if process_hash.empty?
+    process_hash.each do |app, process_array|
+      i = 0
+      process_array.each do |processed|
+        alert "Passenger #{app} instance_#{i}_processed", "ok", processed, ""
         i += 1
       end
     end
@@ -67,4 +115,3 @@ class Riemann::Tools::PassengerStatus
 end
 
 Riemann::Tools::PassengerStatus.run
-
