@@ -35,4 +35,4 @@ class Riemann::Tools::Uptime
 
 end
 
-Riemann::Tools::PassengerStatus.run
+Riemann::Tools::Uptime.run
