@@ -11,94 +11,73 @@ class Riemann::Tools::PassengerStatus
     raise 'Must run as root' unless Process.uid == 0
   end
 
-  def passenger_output
-    `RBENV_VERSION=system passenger-status`
+  def passenger_raw_output
+    $passenger_output = `RBENV_VERSION=system passenger-status`
+  end
+  
+  def passenger_global_metrics
+    global_metrics = $passenger_output.match(/----------- General information -----------(.*)----------- Application groups -----------/m).captures.first.strip
+    global_metrics.split("\n").each do |line|
+      case
+      when line[/Max pool size/]
+        alert "Passenger Max_pool_size", "ok",  line[/\d.*$/], ""
+      when line[/Processes/]
+        alert "Passenger Current_process_number", "ok", line[/\d.*$/], ""
+      when line[/Requests in top-level queue/]
+        alert "Passenger Current_top_level_queue_requests", "ok", line[/\d.*$/], ""
+      end
+    end
+  end
+  
+  def passenger_app_metrics
+    app_metrics = $passenger_output.match(/----------- Application groups -----------(.*)/m).captures.first.strip
+    app_metrics.split("\n\n").each do |app_instances|
+      process_app_instances(app_instances)
+    end
+  end
+  
+  def process_app_group(app_instances)
+    app_instances = app_instances.split("\n")
+    app_dir_name = app_instances.first.split("/")[-2]
+    if app_dir_name[/\./]
+      app_dir_name.gsub!(".", "_")
+    end
+    report_app_queue(app_dir_name, app_instances)
+    process_app_instances(app_dir_name, app_instance[3..-1])
+  end
+
+  def report_app_queue(app_dir_name, app_instances)
+    app_group_requests = app_instances[2][/\d.*$/]
+    alert "Passenger #{app_dir_name} application_queue_requests", "ok", app_group_requests, ""
+  end
+  
+  def process_app_instances(app_dir_name, app_instances)
+    i = 0
+    app_instance.each_slice(2) do |instance_stats|
+      instance_stats.each do |line|
+        line.split("   ").each do |entry|
+          case
+          when entry[/PID/]
+            alert "Passenger #{app_dir_name} instance_#{i}_PID", ok, entry[/\d.*/], ""
+          when entry[/Processed/]
+            alert "Passenger #{app_dir_name} instance_#{i}_Processed", ok, entry[/\d.*/], ""
+          when entry[/CPU/]
+            alert "Passenger #{app_dir_name} instance_#{i}_CPU_Percent", ok, entry[/\d/], ""
+          when entry[/Memory/]
+            alert "Passenger #{app_dir_name} instance_#{i}_Memory", ok, entry[/\d.*/], ""
+          end
+        end
+      end
+      i += 1
+    end
   end
   
   def passenger_pool_metrics
-    index_hash = {}
-    output_array = passenger_output.split("\n")
-    output_array.each_with_index do |line, index|
-      if line[/Max pool size/]
-        alert "Passenger Max_pool_size", "ok",  line[/\d.*$/], ""
-      elsif line[/Processes/]
-        alert "Passenger Current_process_number", "ok", line[/\d.*$/], ""
-      elsif line[/top-level/]
-        alert "Passenger Current_top_level_queue_requests", "ok", line[/\d.*$/], ""
-      elsif line[/App root/]
-        application = line[/\/.*$/].split("/")[-2].gsub!(".","_")
-        index_hash[application] = index
-      else
-        next
-      end
-    end
-      
-    mem_hash, process_hash = passenger_app_memory(index_hash, output_array)
-    passenger_app_load mem_hash
-    passenger_app_requests(index_hash, output_array)
-    passenger_app_processing process_hash
-  end
-  
-  def passenger_app_memory(index_hash, output_array)
-    return nil if index_hash.empty?
-
-    mem_hash = {}
-    process_hash = {}
-
-    index_hash.each do |application, index|
-      mem_hash[application] = []
-      process_hash[application] = []
-      index += 2
-      until output_array[index][/Memory/].nil? && output_array[index][/Processed/].nil?
-        if !output_array[index][/Memory/].nil?
-          memory = output_array[index].split(" ")[4]
-          mem_hash[application] << memory
-        elsif !output_array[index][/Processed/].nil?
-          processed = output_array[index].split(" ")[6]
-          process_hash[application] << processed
-        end
-        index += 1
-        if index >= output_array.length
-          break
-        end
-      end
-    end
-    
-    return mem_hash, process_hash
-  end
-  
-  def passenger_app_requests(index_hash, output_array)
-    return nil if index_hash.empty?
-    index_hash.each do |app, index|
-      group_requests = output_array[index+1][/\d.*$/]
-      alert "Passenger #{app} application_queue_requests", "ok", group_requests, ""
-    end
+    passenger_raw_output
+    passenger_global_metrics
+    passenger_app_metrics
   end
 
-  def passenger_app_load(mem_hash)
-    return nil if mem_hash.empty?
-    mem_hash.each do |app, mem_array|
-      instances = mem_array.length
-      alert "Passenger #{app} total_instances", "ok", instances, ""
-      i = 0
-      mem_array.each do |memory|
-        alert "Passenger #{app} instance_#{i}_memory", "ok", memory, ""
-        i += 1
-      end
-    end
-  end
-  
-  def passenger_app_processing(process_hash)
-    return nil if process_hash.empty?
-    process_hash.each do |app, process_array|
-      i = 0
-      process_array.each do |processed|
-        alert "Passenger #{app} instance_#{i}_processed", "ok", processed, ""
-        i += 1
-      end
-    end
-  end
-  
   def alert(service, state, metric, description)
     report(
       :service => service.to_s,
