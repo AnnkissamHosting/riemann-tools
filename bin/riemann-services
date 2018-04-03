@@ -32,7 +32,7 @@ class Riemann::Tools::RiemannServices
   def check_service(service_name)
     if $os_version == "7"
       full_status = `systemctl status #{service_name}`
-      if $?.exitstatus != 0
+      if $?.exitstatus >= 4
         return
       end
       running_status = full_status.split("\n")[2].strip
@@ -45,7 +45,7 @@ class Riemann::Tools::RiemannServices
       end
     elsif $os_version == "6"
       full_status = `service #{service.to_s} status`
-      if $?.exitstatus != 0
+      if $?.exitstatus >= 4
         return
       end
       if full_status =~ /is\ running/ || full_status =~ /SUCCESS\! MySQL .*running \(/
