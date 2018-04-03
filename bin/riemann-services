@@ -1,0 +1,93 @@
+#!/usr/bin/env ruby
+
+# Monitors running services and submits them to Riemann
+
+require File.expand_path('../../lib/riemann/tools', __FILE__)
+
+class Riemann::Tools::RiemannServices
+  include Riemann::Tools
+
+  def initialize
+    raise 'Must run as root' unless Process.uid == 0
+  end
+
+  def get_os_version
+    $os_version = `cat /etc/redhat-release`.chomp
+    $os_version = $os_version[/\d+/]
+  end
+
+  def check_on_services
+    get_os_version
+    $service_list.each do |service|
+      if service.class == Symbol
+        check_service(service.to_s)
+      elsif service.class == Method
+        service.call
+      else
+        next
+      end
+    end
+  end
+  
+  def check_service(service_name)
+    if $os_version == "7"
+      full_status = `systemctl status #{service_name}`
+      if $?.exitstatus != 0
+        return
+      end
+      running_status = full_status.split("\n")[2].strip
+      if running_status[/\(dead\)/]
+        alert "Service #{service_name}", "warning", 0, ""
+      elsif running_status[/\(running\)/]
+        alert "Service #{service_name}", "ok", 1, ""
+      else
+        alert "Service #{service_name}", "unknown", 0, ""
+      end
+    elsif $os_version == "6"
+      full_status = `service #{service.to_s} status`
+      if $?.exitstatus != 0
+        return
+      end
+      if full_status =~ /is\ running/ || full_status =~ /SUCCESS\! MySQL .*running \(/
+        alert "Service #{status_name}", "ok", 1, ""
+      else
+        alert "Service #{status_name}", "warning", 0, ""
+      end
+    end
+  end
+  
+  def detect_and_check_redis_instances
+    redis_list = `ps -e -o command | grep redis | grep -v grep`.split("\n").each do |instance|
+      next unless instance[/redis-server/]
+      port = instance.match(/:(\d+)/).captures.first
+      alert "Service redis_port_#{port}", "ok", 1, ""
+    end
+  end
+
+  def alert(service, state, metric, description)
+    report(
+      :service => service.to_s,
+      :state => state.to_s,
+      :metric => metric.to_f,
+      :description => description
+    )
+  end
+  
+  def tick
+    $service_list = [
+      :crond,
+      :ntpd,
+      :monit,
+      :'postgresql-9.6',
+      :httpd,
+      :mysql,
+      :mysqld,
+      :mariadb,
+      method(:detect_and_check_redis_instances),
+    ]
+    check_on_services
+  end
+
+end
+
+Riemann::Tools::RiemannServices.run
