@@ -44,14 +44,14 @@ class Riemann::Tools::RiemannServices
         alert "Service #{service_name}", "unknown", 0, ""
       end
     elsif $os_version == "6"
-      full_status = `service #{service.to_s} status`
+      full_status = `service #{service_name} status`
       if $?.exitstatus != 0
         return
       end
       if full_status =~ /is\ running/ || full_status =~ /SUCCESS\! MySQL .*running \(/
-        alert "Service #{status_name}", "ok", 1, ""
+        alert "Service #{service_name}", "ok", 1, ""
       else
-        alert "Service #{status_name}", "warning", 0, ""
+        alert "Service #{service_name}", "warning", 0, ""
       end
     end
   end
