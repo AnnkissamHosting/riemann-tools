@@ -62,7 +62,7 @@ class Riemann::Tools::PassengerStatus
           when entry[/Processed/]
             alert "Passenger #{app_dir_name} instance_#{i}_Processed", "ok", entry[/\d.*/], ""
           when entry[/CPU/]
-            alert "Passenger #{app_dir_name} instance_#{i}_CPU_Percent", "ok," entry[/\d/], ""
+            alert "Passenger #{app_dir_name} instance_#{i}_CPU_Percent", "ok", entry[/\d/], ""
           when entry[/Memory/]
             alert "Passenger #{app_dir_name} instance_#{i}_Memory", "ok", entry[/\d.*/], ""
           end
