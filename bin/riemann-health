@@ -15,6 +15,8 @@ class Riemann::Tools::Health
   opt :load_critical, "Load critical threshold (load average / core)", :default => 8
   opt :memory_warning, "Memory warning threshold (fraction of RAM)", :default => 0.85
   opt :memory_critical, "Memory critical threshold (fraction of RAM)", :default => 0.95
+  opt :swap_warning, "Swap warning threshold (fraction of swap)", :default => 0.5
+  opt :swap_critical, "Swap critical threshold (fraction of swap)", :default => 0.75
   opt :checks, "A list of checks to run.", :type => :strings, :default => ['cpu', 'load', 'memory', 'disk']
 
   def initialize
@@ -22,7 +24,8 @@ class Riemann::Tools::Health
       :cpu => {:critical => opts[:cpu_critical], :warning => opts[:cpu_warning]},
       :disk => {:critical => opts[:disk_critical], :warning => opts[:disk_warning]},
       :load => {:critical => opts[:load_critical], :warning => opts[:load_warning]},
-      :memory => {:critical => opts[:memory_critical], :warning => opts[:memory_warning]}
+      :memory => {:critical => opts[:memory_critical], :warning => opts[:memory_warning]},
+      :swap   => {:critical => opts[:swap_critical], :warning => opts[:swap_warning]},
     }
     case (@ostype = `uname -s`.chomp.downcase)
     when 'darwin'
@@ -127,6 +130,12 @@ class Riemann::Tools::Health
     fraction = 1 - (free.to_f / total)
 
     report_pct :memory, fraction, "used\n\n#{`ps -eo pmem,pid,args --no-headers | sort -nrb -k1 | head -10`.chomp}"
+
+    swap_free  = m["SwapFree"].to_i
+    swap_total = m["SwapTotal"].to_i
+    swap_fraction = 1 - (swap_free.to_f / swap_total)
+
+    report_pct :swap, swap_fraction, ""
   end
 
   def freebsd_cpu

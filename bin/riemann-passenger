@@ -70,6 +70,7 @@ class Riemann::Tools::PassengerStatus
       end
       i += 1
     end
+    alert "Passenger #{app_dir_name} total_instances", "ok", i, ""
   end
   
   def passenger_pool_metrics
