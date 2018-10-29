@@ -40,6 +40,12 @@ ship with the `riemann-tools` gem, including:
 * riemann-kvminstance - Monitor KVM instances.
 * riemann-ntp - Monitor NTP
 
+Please note that the following gems are BFortress custom gems:
+
+* riemann-passenger - Monitor Passenger
+* riemann-uptime - Monitor uptime
+* riemann-services - Monitor a set list of running services
+
 Also contained in the repository are a number of stand-alone monitoring
 tools, which are shipped as separate gems.
 
