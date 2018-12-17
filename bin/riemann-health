@@ -133,7 +133,11 @@ class Riemann::Tools::Health
 
     swap_free  = m["SwapFree"].to_i
     swap_total = m["SwapTotal"].to_i
-    swap_fraction = 1 - (swap_free.to_f / swap_total)
+    unless swap_total == 0
+      swap_fraction = 1 - (swap_free.to_f / swap_total)
+    else
+      swap_fraction = 1
+    end
 
     report_pct :swap, swap_fraction, ""
   end
