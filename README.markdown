@@ -7,6 +7,8 @@ Riemann-health, for example, submits events about the current CPU, load,
 memory, and disk use. Also available is `riemann-bench`, which submits
 randomly distributed metrics for load testing.
 
+[![Gem Version](https://badge.fury.io/rb/riemann-tools.svg)](https://badge.fury.io/rb/riemann-tools)
+
 Get started
 ===========
 
@@ -14,6 +16,7 @@ Get started
 gem install riemann-tools
 riemann-health --host my.riemann.server
 ```
+
 Riemann-tools programs
 ======================
 
@@ -38,7 +41,8 @@ ship with the `riemann-tools` gem, including:
 * riemann-consul - Monitor Consul.
 * riemann-fd - Linux file descriptor use.
 * riemann-kvminstance - Monitor KVM instances.
-* riemann-ntp - Monitor NTP
+* riemann-ntp - Monitor NTP.
+* riemann-portcheck - Monitor open TCP ports.
 
 Please note that the following gems are BFortress custom gems:
 
@@ -73,6 +77,16 @@ To install the AWS tools.
 
 There are also a number of additional, stand-alone tools, contained in
 the [Riemann GitHub account](https://github.com/riemann/).
+
+Docker Images
+=============
+
+You can find Docker images for the tools [here](https://hub.docker.com/u/riemannio/dashboard/).
+
+Build status
+============
+
+[![Build Status](https://travis-ci.com/riemann/riemann-tools.svg?branch=master)](https://travis-ci.com/riemann/riemann-tools)
 
 License
 =======

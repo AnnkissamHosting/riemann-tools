@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+Process.setproctitle($0)
 
 # Reports service and node status to riemann
 
@@ -48,8 +49,8 @@ class Riemann::Tools::ConsulHealth
 
   def tick
 
-    leader = get(@consul_leader_url)
-    leader_hostname = URI.parse("http://" + leader[1..-2]).hostname
+    leader = JSON.parse(get(@consul_leader_url))
+    leader_hostname = URI.parse("http://" + leader).hostname
 
     if (leader_hostname == @underlying_ip)
       nodes = JSON.parse(get(@consul_nodes_url))
