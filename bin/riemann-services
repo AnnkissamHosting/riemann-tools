@@ -62,6 +62,12 @@ class Riemann::Tools::RiemannServices
       alert "Service redis_port_#{port}", "ok", 1, ""
     end
   end
+  
+  def detect_and_check_elixir_instances
+    Dir.glob("/etc/init.d/elixir*").map! { |str| str.split("/").last }.each do |service_name|
+      check_service(service_name)
+    end
+  end
 
   def alert(service, state, metric, description)
     report(
@@ -83,6 +89,7 @@ class Riemann::Tools::RiemannServices
       :mysqld,
       :mariadb,
       method(:detect_and_check_redis_instances),
+      method(:detect_and_check_elixir_apps),
     ]
     check_on_services
   end
