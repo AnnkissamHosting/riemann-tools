@@ -89,7 +89,7 @@ class Riemann::Tools::RiemannServices
       :mysqld,
       :mariadb,
       method(:detect_and_check_redis_instances),
-      method(:detect_and_check_elixir_apps),
+      method(:detect_and_check_elixir_instances),
     ]
     check_on_services
   end
