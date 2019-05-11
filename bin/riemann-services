@@ -62,7 +62,7 @@ class Riemann::Tools::RiemannServices
       alert "Service redis_port_#{port}", "ok", 1, ""
     end
   end
-  
+
   def detect_and_check_elixir_instances
     Dir.glob("/etc/init.d/elixir*").map! { |str| str.split("/").last }.each do |service_name|
       check_service(service_name)
@@ -81,7 +81,7 @@ class Riemann::Tools::RiemannServices
   def tick
     $service_list = [
       :crond,
-      :ntpd,
+      :chronyd,
       :monit,
       :'postgresql-9.6',
       :httpd,
