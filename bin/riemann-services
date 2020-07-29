@@ -35,7 +35,7 @@ class Riemann::Tools::RiemannServices
       stdout, stderr, status = Open3.capture3("systemctl status #{service_name}")
       # exit status >= 4 means service is not installed
       return if status.exitstatus >= 4
-      running_status = stdout.split("\n")[2].strip
+      running_status = stdout.split("\n").detect{|line| line[/^\s+Active:/] }.strip
       if running_status[/\(dead\)/]
         alert "Service #{service_name}", "warning", 0, ""
       elsif running_status[/\(running\)/]
