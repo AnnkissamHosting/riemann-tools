@@ -85,7 +85,6 @@ class Riemann::Tools::RiemannServices
       :monit,
       :'postgresql-9.6',
       :httpd,
-      :mysql,
       :mysqld,
       :mariadb,
       method(:detect_and_check_redis_instances),
