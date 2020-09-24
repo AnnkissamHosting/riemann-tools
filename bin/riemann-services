@@ -12,9 +12,12 @@ class Riemann::Tools::RiemannServices
     raise 'Must run as root' unless Process.uid == 0
   end
 
-  def get_os_version
-    $os_version = `cat /etc/redhat-release`.chomp
-    $os_version &&= $os_version[/\d+/]
+  def is_systemctl_used?
+    ::File.exist?("/bin/systemctl")
+  end
+
+  def is_service_used?
+    ::File.exist?("/sbin/service")
   end
 
   def check_on_services
@@ -31,7 +34,7 @@ class Riemann::Tools::RiemannServices
   end
 
   def check_service(service_name)
-    if $os_version == "7"
+    if is_systemctl_used?
       stdout, stderr, status = Open3.capture3("systemctl status #{service_name}")
       # exit status >= 4 means service is not installed
       return if status.exitstatus >= 4
@@ -43,7 +46,7 @@ class Riemann::Tools::RiemannServices
       else
         alert "Service #{service_name}", "unknown", 0, ""
       end
-    elsif $os_version == "6"
+    elsif is_service_used?
       stdout, stderr, status = Open3.capture3("service #{service_name} status")
       if stderr =~ /#{service_name}: unrecognized service/
         return
@@ -52,6 +55,8 @@ class Riemann::Tools::RiemannServices
       else
         alert "Service #{service_name}", "warning", 0, ""
       end
+    else
+      raise "Don't know how to check on services!"
     end
   end
 
