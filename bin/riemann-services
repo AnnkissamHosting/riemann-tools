@@ -21,7 +21,6 @@ class Riemann::Tools::RiemannServices
   end
 
   def check_on_services
-    get_os_version
     $service_list.each do |service|
       if service.class == Symbol
         check_service(service.to_s)
